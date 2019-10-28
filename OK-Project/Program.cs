@@ -10,20 +10,41 @@ namespace OK_Project
     {
         public int V;
         public LinkedList<int>[] adj;
+        public int[] result;
+        public int fitness = 0;
 
-        public Graph(int v)
+        public Graph() { }
+        public Graph(string filename)
         {
+            string line;
+            System.IO.StreamReader file = new System.IO.StreamReader(filename);
+            int v = int.Parse(file.ReadLine());
+
             V = v;
+            result = new int[V];
             adj = new LinkedList<int>[V];
             for (int i = 0; i < v; i++)
                 adj[i] = new LinkedList<int>();
+
+
+            while ((line = file.ReadLine()) != null)
+            {
+                string[] val = line.Split(' ');
+                addEdge(int.Parse(val[0]) - 1, int.Parse(val[1]) - 1);
+            }
         }
 
+        public Graph clone()
+        {
+            Graph result = this;
+            return result;
+        }
         public void addEdge(int v, int w)
         {
             adj[v].AddLast(w);
             adj[w].AddLast(v);
         }
+
 
         /**
          *  Algorytm zachłanny problemu kolorowania grafu.
@@ -35,7 +56,6 @@ namespace OK_Project
         public int greedy()
         {
             // Enumerable.Repeat<T>(x1, x2).ToArray() wypełnia tablicę wartościami x1, w ilości x2
-            int[] result = Enumerable.Repeat<int>(-1, V).ToArray();
             bool[] avalible = Enumerable.Repeat<bool>(true, V).ToArray();
 
             result[0] = 0;
@@ -68,49 +88,120 @@ namespace OK_Project
         }
 
     }
+    class Genetics
+    {
+        Random rand = new Random();
+        Graph[] chromosomes;
+
+        /**
+         * Function that calculates Fitness Score for given Graph
+         * Fitness == 0, means that we have perfect fitness
+         * In this case, as fitness score we used number of edges, that vertices have the same colour.
+         */
+        public void fitnessScore(Graph graph)
+        {
+            for (int i = 0; i < graph.adj.Length; i++)
+            {
+                foreach (int j in graph.adj[i])
+                {
+                    // Iterates every element in every list
+                    if (graph.result[i] == graph.result[j])
+                        ++graph.fitness;
+                }
+            }
+            graph.fitness /= 2; // 'cuz calculates twice the same edge
+        }
+        
+        /**
+         * Function that select fittest parents from two random pairs of chromosomes.
+         * Used when best fitness greater than 4.
+         */
+        public Tuple<Graph, Graph> parentSelect1()
+        {
+            Graph g1, g2;
+
+            Graph tempPar1 = chromosomes[rand.Next(chromosomes.Length)];
+            Graph tempPar2 = chromosomes[rand.Next(chromosomes.Length)];
+
+            // ??????
+            // not sure, if should be greater or less
+            // ??????
+            if (tempPar1.fitness > tempPar2.fitness)
+                g1 = tempPar1; 
+            else
+                g1 = tempPar2;
+
+            tempPar1 = chromosomes[rand.Next(chromosomes.Length)];
+            tempPar2 = chromosomes[rand.Next(chromosomes.Length)];
+
+            if (tempPar1.fitness > tempPar2.fitness)
+                g2 = tempPar1;
+            else
+                g2 = tempPar2;
+
+            return new Tuple<Graph, Graph>(g1, g2);
+        }
+
+        /**
+        * Function that select two best performing chromosomes
+        * Used when best fitness less than 4.
+        */
+        public Tuple<Graph, Graph> parentSelect2()
+        {
+            Graph g1, g2;
+            g1 = chromosomes[0];
+            g2 = chromosomes[0];
+
+            for (int i = 1; i < chromosomes.Length; i++)
+                if (g1.fitness > chromosomes[i].fitness)
+                    g1 = chromosomes[i];
+
+            for (int i = 1; i < chromosomes.Length; i++)
+                if ((g2.fitness > chromosomes[i].fitness) && (g1 != chromosomes[i]))
+                    g2 = chromosomes[i];
+            
+            return new Tuple<Graph, Graph>(g1, g2);
+        }
+
+        /**
+         * Funcion that cross two parents into one child.
+         * I like to call it "reproduction".
+         * Crosspoint is generated at random.
+         */
+        public Graph crossover(Graph g1, Graph g2)
+        {
+            Graph child = g1;
+            int crosspoint = rand.Next(child.V);
+
+            for (int i = 0; i <= crosspoint; i++)
+                child.result[i] = g1.result[i];
+
+            for (int i = crosspoint + 1; i <= child.V; i++)
+                child.result[i] = g2.result[i];
+
+            return child;
+        }
+
+    }
+    
     class Program
     {
-        /**
-         * Najprostsza funkcja odczytywania z pliku.
-         * Przykładowy format wymaganego pliku aktualnie:
-         * 5 -> liczba wierzchołków
-         * 1 2 -> połączenie krawędzi
-         * 1 3
-         * 2 4
-         * 2 5
-         * 3 5
-         * 4 5
-         * TO DO: parser do plików (e 1 2) -> edge
-         **/
-        static Graph LoadFromFile()
-        {
-            string line;
-            System.IO.StreamReader file = new System.IO.StreamReader(@"C:\Users\Selethen\Source\Repos\Krymeq\OK-Project\OK-Project\test.txt");
-            Graph g = new Graph(int.Parse(file.ReadLine()));
-
-            while ((line = file.ReadLine()) != null)
-            {
-                string[] val = line.Split(' ');
-                g.addEdge(int.Parse(val[0])-1, int.Parse(val[1])-1 );
-            }
-
-            return g;
-        }
         static void Main(string[] args)
         {
-            Graph g = LoadFromFile();
-            for (int i = 0; i < g.adj.Length; i++)
-            {
-                Console.Write("Vertex " + i + ": ");
-                foreach (int j in g.adj[i])
-                {
-                    Console.Write(j + " ");
-                }
-                Console.WriteLine();
-                Console.WriteLine("===========");
-            }
+            Graph g = new Graph(@"C:\Users\Selethen\Source\Repos\Krymeq\OK-Project\OK-Project\test.txt");
 
-            Console.WriteLine("Zachłanny algorytm: " + g.greedy());
+            Graph test = g.clone();
+
+
+            Console.WriteLine("Zachłanny algorytm: " + test.greedy());
+            Console.WriteLine("Test = " + test.result.Max());
+
+            Genetics nowy = new Genetics();
+            nowy.fitnessScore(test);
+            Tuple<Graph, Graph> xxx = nowy.parentSelect1();
+
+            xxx = nowy.parentSelect1();
+            xxx = nowy.parentSelect1();
 
             Console.ReadKey();
         }
