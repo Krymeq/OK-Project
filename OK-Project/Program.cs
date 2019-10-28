@@ -11,12 +11,23 @@ namespace OK_Project
         public int V;
         public LinkedList<int>[] adj;
 
-        public Graph(int v)
+        public Graph(string filename)
         {
+            string line;
+            System.IO.StreamReader file = new System.IO.StreamReader(filename);
+            int v = int.Parse(file.ReadLine());
+
             V = v;
             adj = new LinkedList<int>[V];
             for (int i = 0; i < v; i++)
                 adj[i] = new LinkedList<int>();
+
+
+            while ((line = file.ReadLine()) != null)
+            {
+                string[] val = line.Split(' ');
+                addEdge(int.Parse(val[0]) - 1, int.Parse(val[1]) - 1);
+            }
         }
 
         public void addEdge(int v, int w)
@@ -24,6 +35,7 @@ namespace OK_Project
             adj[v].AddLast(w);
             adj[w].AddLast(v);
         }
+
 
         /**
          *  Algorytm zachłanny problemu kolorowania grafu.
@@ -70,35 +82,10 @@ namespace OK_Project
     }
     class Program
     {
-        /**
-         * Najprostsza funkcja odczytywania z pliku.
-         * Przykładowy format wymaganego pliku aktualnie:
-         * 5 -> liczba wierzchołków
-         * 1 2 -> połączenie krawędzi
-         * 1 3
-         * 2 4
-         * 2 5
-         * 3 5
-         * 4 5
-         * TO DO: parser do plików (e 1 2) -> edge
-         **/
-        static Graph LoadFromFile()
-        {
-            string line;
-            System.IO.StreamReader file = new System.IO.StreamReader(@"C:\Users\Selethen\Source\Repos\Krymeq\OK-Project\OK-Project\test.txt");
-            Graph g = new Graph(int.Parse(file.ReadLine()));
-
-            while ((line = file.ReadLine()) != null)
-            {
-                string[] val = line.Split(' ');
-                g.addEdge(int.Parse(val[0])-1, int.Parse(val[1])-1 );
-            }
-
-            return g;
-        }
         static void Main(string[] args)
         {
-            Graph g = LoadFromFile();
+            Graph g = new Graph(@"C:\Users\Selethen\Source\Repos\Krymeq\OK-Project\OK-Project\test.txt");
+                
             for (int i = 0; i < g.adj.Length; i++)
             {
                 Console.Write("Vertex " + i + ": ");
