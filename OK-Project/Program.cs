@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OK_Project
 {
@@ -13,7 +11,12 @@ namespace OK_Project
         public int[] result;
         public int fitness = 0;
 
-        public Graph() { }
+        // Constructor used to generate a random graph with given saturation
+        public Graph(int nodes, int saturation)
+        {
+            generate(nodes, saturation);
+        }
+
         public Graph(string filename)
         {
             string line;
@@ -34,11 +37,97 @@ namespace OK_Project
             }
         }
 
+        // Generate graph with given amount of nodes and saturation (in %)
+        public void generate(int nodes, int saturation)
+        {
+            V = nodes;
+            result = new int[V];
+            adj = new LinkedList<int>[V];
+
+            for (int i = 0; i < nodes; i++)
+                adj[i] = new LinkedList<int>();
+
+            var rnd = new Random();
+            var disconnected = new LinkedList<int>();
+            var connected = new LinkedList<int>();
+            int edges = 0;
+
+            for(int i = 0; i < nodes; i++)
+                disconnected.AddLast(i);
+
+            // Begin from random node
+            connected.AddLast(disconnected.ElementAt(rnd.Next(disconnected.Count())));
+            disconnected.Remove(connected.ElementAt(0));
+
+            // Loop generating base of the graph - connecting all necessary nodes together
+            while (disconnected.Count > 0)
+            {                
+                // pick 2 nodes - one connected, one not - and connect them
+                int node1 = disconnected.ElementAt(rnd.Next(disconnected.Count()));
+                int node2 = connected.ElementAt(rnd.Next(connected.Count()));
+
+                disconnected.Remove(node1);
+                connected.AddLast(node1);
+
+                addEdge(node1, node2);
+                edges++;
+            }
+
+            // Second part of graph generation - picking randomly two nodes
+            // and connecting them as long as the saturation requirement is not specified
+
+            while(edges < ((float) (nodes *  (nodes - 1)) / 2 * saturation / 100.0f))
+            {
+                int node1 = connected.ElementAt(rnd.Next(connected.Count()));
+                int node2 = -1;
+
+                Console.WriteLine("In second loop");
+
+                do
+                {
+                    node2 = connected.ElementAt(rnd.Next(connected.Count()));
+                    Console.WriteLine("In second loop - inner " + node2 + ", " + node1);
+                } while (node1 == node2);
+
+                if (!connection(node1, node2))
+                {
+                    addEdge(node1, node2);
+
+                    edges++;
+                }
+            }
+        }
+
+
+        public bool connection(int i, int j)
+        {
+            for(int xd = 0; xd < adj[i].Count(); xd++)
+            {
+                if (adj[i].ElementAt(xd) == j) return true;
+            }
+            return false;
+        }
+
+        public void print()
+        {
+            for(int i = 0; i < V; i++)
+            {
+                Console.Write(i + ": ");
+                for(int j = 0; j < adj[i].Count; j++)
+                {
+                    Console.Write(adj[i].ElementAt(j) + ", ");
+                }
+                Console.WriteLine();
+            }
+        }
+
         public Graph clone()
         {
             Graph result = this;
             return result;
         }
+
+
         public void addEdge(int v, int w)
         {
             adj[v].AddLast(w);
@@ -88,16 +177,51 @@ namespace OK_Project
         }
 
     }
+
+
     class Genetics
     {
         Random rand = new Random();
-        Graph[] chromosomes;
+        public Graph[] chromosomes = new Graph[1];
 
+        List<LinkedList<int>> solutions;
+
+        public void generatePopulation(int amount)
+        {
+            solutions = new List<LinkedList<int>>();
+
+            int nodes = chromosomes[0].V;
+            int colours = 0;
+
+            for (int i = 0; i < nodes; i++)
+            {
+                if (chromosomes[0].adj[i].Count() > colours)
+                    colours = chromosomes[0].adj[i].Count();
+            }
+
+            for(int i = 0; i < amount; i++)
+            {
+                solutions.Add(new LinkedList<int>());
+
+                Console.Write("Rozwiązanie " + i + ": ");
+                for(int j = 0; j < nodes; j++)
+                {
+                    solutions.ElementAt(i).AddLast(rand.Next(colours));
+                    Console.Write(solutions.ElementAt(i).ElementAt(j) + ", ");
+                }
+                Console.WriteLine();
+            }
+
+
+        }
         /**
          * Function that calculates Fitness Score for given Graph
          * Fitness == 0, means that we have perfect fitness
          * In this case, as fitness score we used number of edges, that vertices have the same colour.
          */
+        
+        
+        
         public void fitnessScore(Graph graph)
         {
             for (int i = 0; i < graph.adj.Length; i++)
@@ -188,20 +312,23 @@ namespace OK_Project
     {
         static void Main(string[] args)
         {
-            Graph g = new Graph(@"C:\Users\Selethen\Source\Repos\Krymeq\OK-Project\OK-Project\test.txt");
-
+            // Graph g = new Graph("test.txt");
+            Graph g = new Graph(9, 10);
             Graph test = g.clone();
 
+            // g.print();
 
-            Console.WriteLine("Zachłanny algorytm: " + test.greedy());
-            Console.WriteLine("Test = " + test.result.Max());
+            //Console.WriteLine("Zachłanny algorytm: " + test.greedy());
+            //Console.WriteLine("Test = " + test.result.Max());
 
             Genetics nowy = new Genetics();
-            nowy.fitnessScore(test);
-            Tuple<Graph, Graph> xxx = nowy.parentSelect1();
+            nowy.chromosomes[0] = g;
+            nowy.generatePopulation(5);
+            //nowy.fitnessScore(test);
+            //Tuple<Graph, Graph> xxx = nowy.parentSelect1();
 
-            xxx = nowy.parentSelect1();
-            xxx = nowy.parentSelect1();
+            //xxx = nowy.parentSelect1();
+            //xxx = nowy.parentSelect1();
 
             Console.ReadKey();
         }
