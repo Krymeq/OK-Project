@@ -18,6 +18,7 @@ namespace OK_Project
             generate(nodes, saturation);
         }
 
+        // Constructor reading graph from file
         public Graph(string filename)
         {
             string line;
@@ -82,12 +83,12 @@ namespace OK_Project
                 int node1 = connected.ElementAt(rnd.Next(connected.Count()));
                 int node2 = -1;
 
-                Console.WriteLine("In second loop");
+                //Console.WriteLine("In second loop");
 
                 do
                 {
                     node2 = connected.ElementAt(rnd.Next(connected.Count()));
-                    Console.WriteLine("In second loop - inner " + node2 + ", " + node1);
+                    //Console.WriteLine("In second loop - inner " + node2 + ", " + node1);
                 } while (node1 == node2);
 
                 if (!connection(node1, node2))
@@ -98,7 +99,6 @@ namespace OK_Project
                 }
             }
         }
-
 
         public bool connection(int i, int j)
         {
@@ -121,6 +121,7 @@ namespace OK_Project
                 Console.WriteLine();
             }
         }
+
         public void addEdge(int v, int w)
         {
             adj[v].AddLast(w);

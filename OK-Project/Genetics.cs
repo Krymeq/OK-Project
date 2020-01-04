@@ -13,20 +13,30 @@ namespace OK_Project
 
         public int[] fitness;
         public int[,] solutions;
-
+        public int maxColor;                  // variable containing maximum color which is the current target to reach
+        /**
+         * Function which generates population of n (given parameter) chromosomes
+         * with random values
+         */
         private void generatePopulation(int amount)
         {
+            // creating proper arrays
             solutions = new int[amount, graph.V];
             fitness = new int[amount];
 
             int nodes = graph.V;
-            int colours = 0;
+            int colours = maxColor;
 
-            for (int i = 0; i < nodes; i++)
-            {
-                if (graph.adj[i].Count() > colours)
-                    colours = graph.adj[i].Count();
-            }
+            // get the expected amount of colours needed by taking the max 
+            // amount of neighbors out of every vertex in the graph
+            //for (int i = 0; i < nodes; i++)
+            //{
+            //    if (graph.adj[i].Count() > colours)
+            //    colours = graph.adj[i].Count();
+            //}
+
+            // generate n chromosomes with randomly assigned colour from the range of
+            // 0..(colours / 4)
 
             for (int i = 0; i < amount; i++)
             {
@@ -48,34 +58,40 @@ namespace OK_Project
         private void fitnessScore(int index)
         {
             fitness[index] = 0;
+
             for (int i = 0; i < graph.adj.Length; i++)
             {
                 foreach (int j in graph.adj[i])
                 {
-                    // Iterates every element in every list
+                    // Iterates every element in every list.
+                    // If its colors are equal, a point is granted.
                     if (solutions[index,i] == solutions[index,j])
                         ++fitness[index];
                 }
             }
-            fitness[index] /= 2; // 'cuz calculates twice the same edge
+            fitness[index] /= 2; // 'cuz it calculates twice the same edge
         }
 
         /**
-         * Function that select fittest parents from two random pairs of chromosomes.
+         * Function that select best fitting parents from 
+         * two random pairs of chromosomes.
          * Used when best fitness greater than 4.
          */
         private Tuple<int, int> parentSelect1()
         {
             int index1, index2;
-
+            
+            // pick two indexes for the first pair
             int tempPar1 = rand.Next(fitness.Length);
             int tempPar2 = rand.Next(fitness.Length);
 
+            // get the better one
             if (fitness[tempPar1] > fitness[tempPar2])
                 index1 = tempPar1;
             else
                 index1 = tempPar2;
 
+            // repeat for the second pair
             tempPar1 = rand.Next(fitness.Length);
             tempPar2 = rand.Next(fitness.Length);
 
@@ -97,6 +113,7 @@ namespace OK_Project
             index1 = 0;
             index2 = 0;
 
+            // similar way to the function above
             for (int i = 1; i < fitness.Length; i++)
                 if (fitness[index1] > fitness[i])
                     index1 = i;
@@ -119,6 +136,7 @@ namespace OK_Project
 
             int crosspoint = rand.Next(graph.V);
 
+            // Take elements before the crosspoint from the first parent, and after it - from the second.
             for (int i = 0; i <= crosspoint; i++)
                 child[i] = solutions[index1, i];
 
@@ -129,7 +147,7 @@ namespace OK_Project
         }
 
         /**
-         * Function replacing the least fittest chromosome with new child.
+         * Function replacing the worst fitting chromosome with new child.
          * Returns index of child's new position.
          */
         private int offspring(int[] result)
@@ -137,6 +155,7 @@ namespace OK_Project
             int maxFittness = fitness[0];
             int leastFittestIndex = 0;
 
+            // Find worst chromosome's index
             for (int i = 1; i < fitness.Length; ++i)
             {
                 if (fitness[i] > maxFittness)
@@ -146,6 +165,7 @@ namespace OK_Project
                 }
             }
             
+            // Substitute worst chromosome with the new child
             for (int i = 0; i < solutions.GetLength(1); i++)
             {
                 solutions[leastFittestIndex, i] = result[i];
@@ -156,25 +176,32 @@ namespace OK_Project
 
         /**
          * Function which causes mutation of item at [mutationIndex].
-         * Replaces colors of adjacent colors if can.
+         * Replaces colors of adjacent colors if able.
          */
         private void mutation1(int mutationIndex)
         {
             LinkedList<int> adjacentColors = new LinkedList<int>(); // empty array of all adjacent colors
             LinkedList<int> allColors = new LinkedList<int>(); // empty array of all colors
 
-            for (int i = 0; i < graph.V; i++) // fill allColors with maximum number of colors
+
+            // fill allColors with maximum number of colors
+            for (int i = 0; i < maxColor; i++) 
                 allColors.AddLast(i);
 
+            // for every vertex
             for (int i = 0; i < graph.V; i++)
             {
                 adjacentColors.Clear();
-                foreach (int item in graph.adj[i]) // fill adjacentColors
+
+                // fill adjacentColors
+                // iterate through adjacent vertices and add colours of the neighbors
+                foreach (int item in graph.adj[i]) 
                     adjacentColors.AddLast(solutions[mutationIndex, item]);
 
+                // if any vertex has the same colour as the given one
                 if (adjacentColors.Contains(solutions[mutationIndex, i]))
                 {
-                    // mutate
+                    // mutate - swap colour of the vertex with the smallest colour available
                     LinkedList<int> validColors = new LinkedList<int>();
                     foreach (int item in allColors)
                     {
@@ -186,7 +213,11 @@ namespace OK_Project
                      * A) smallest colors from validColors()
                      * B) random color from validColors()
                      */
-                    solutions[mutationIndex, i] = validColors.First();
+                    if (validColors.Count > 0)
+                    {
+                        solutions[mutationIndex, i] = validColors.First();
+               
+                    }
                 }
             }
 
@@ -197,7 +228,7 @@ namespace OK_Project
             LinkedList<int> adjacentColors = new LinkedList<int>(); // empty array of all adjacent colors
             LinkedList<int> allColors = new LinkedList<int>(); // empty array of all colors
 
-            for (int i = 0; i < graph.V; i++) // fill allColors with maximum number of colors
+            for (int i = 0; i < maxColor; i++) // fill allColors with maximum number of colors
                 allColors.AddLast(i);
 
             for (int i = 0; i < graph.V; i++)
@@ -219,13 +250,21 @@ namespace OK_Project
         public void letsGoGenetic(int amountChromosomes, int maxGenerations)
         {
             int generation = 0;
+
+            maxColor = graph.greedy();
+
+            Console.WriteLine();
+            Console.WriteLine("Max color: " + maxColor.ToString());
+            
             // void generatePopulation(int amount);
+            // Generate x initial chromosomes
             generatePopulation(amountChromosomes);
 
+            // Calculate their initial score
             // void fitnessScore(int index);
             for (int i = 0; i < amountChromosomes; i++)
                 fitnessScore(i);
-
+           
             while ((generation != maxGenerations) && (fitness.Max() != 0))
             {
                 generation++;
@@ -244,6 +283,7 @@ namespace OK_Project
                 // int[] crossover(int index1, int index2);
                 int[] child = crossover(selection.Item1, selection.Item2);
 
+                // Position of a new children
                 // int offspring(int[] result);
                 int index = offspring(child);
 
@@ -265,7 +305,7 @@ namespace OK_Project
             for (int i = 0; i < solutions.GetLength(0); i++)
             {
                 colors = -1;
-                if (fitness[i] == 0)
+                if (fitness[i] != -2137)
                 {
                     Console.Write("Rozwiązanie[" + i + "] : ");
                     for (int j = 0; j < solutions.GetLength(1); j++)
@@ -283,7 +323,7 @@ namespace OK_Project
                 }
             }
 
-            Console.WriteLine("Best is equal to " + (minColors+1) + " colors, on index " + minIndex);
+            Console.WriteLine("Best is equal to " + (minColors + 1) + " colors, on index " + minIndex);
             
         }
     }
