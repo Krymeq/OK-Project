@@ -18,7 +18,7 @@ namespace OK_Project
         {
             
             // Graph g = new Graph("test.txt");
-            Graph g = new Graph(20, 100);
+            Graph g = new Graph(55,75);
 
             // g.print();
 
@@ -27,7 +27,7 @@ namespace OK_Project
 
             Genetics nowy = new Genetics();
             nowy.graph = g;
-            nowy.letsGoGenetic(150, 1500);
+            nowy.letsGoGenetic(50, 800);
 
             Console.WriteLine("Zachłanny algorytm: " + g.greedy());
 

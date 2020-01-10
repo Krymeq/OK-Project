@@ -19,6 +19,25 @@ namespace OK_Project
          * Function which generates population of n (given parameter) chromosomes
          * with random values
          */
+        
+        private int validateResult(int[] res)
+        {
+            int fitness = 0;
+
+            for (int i = 0; i < graph.adj.Length; i++)
+            {
+                foreach (int j in graph.adj[i])
+                {
+                    // Iterates every element in every list.
+                    // If its colors are equal, a point is granted.
+                    if (res[i] == res[j])
+                        ++fitness;
+                }
+            }
+            return fitness / 2; // 'cuz it calculates twice the same edge
+        }
+
+
         private void generatePopulation(int amount)
         {
             // creating proper arrays
@@ -44,7 +63,7 @@ namespace OK_Project
                 Console.Write("Rozwiązanie " + i + ": ");
                 for (int j = 0; j < nodes; j++)
                 {
-                    solutions[i, j] = rand.Next(colours / 4);
+                    solutions[i, j] = rand.Next(colours);
                     Console.Write(solutions[i,j] + ", ");
                 }
                 Console.WriteLine();
@@ -69,6 +88,7 @@ namespace OK_Project
                 fitnessScore(i);
             }
         }
+
 
         private void saveResult()
         {
@@ -123,9 +143,16 @@ namespace OK_Project
             // pick two indexes for the first pair
             int tempPar1 = rand.Next(fitness.Length);
             int tempPar2 = rand.Next(fitness.Length);
+            
+            // ensure that they are not equal
+            while(tempPar1 == tempPar2)
+            {
+                tempPar2 = rand.Next(fitness.Length);
+            }
+
 
             // get the better one
-            if (fitness[tempPar1] > fitness[tempPar2])
+            if (fitness[tempPar1] < fitness[tempPar2])
                 index1 = tempPar1;
             else
                 index1 = tempPar2;
@@ -134,7 +161,13 @@ namespace OK_Project
             tempPar1 = rand.Next(fitness.Length);
             tempPar2 = rand.Next(fitness.Length);
 
-            if (fitness[tempPar1] > fitness[tempPar2])
+            // ensure that they are not equal
+            while (tempPar1 == tempPar2)
+            {
+                tempPar2 = rand.Next(fitness.Length);
+            }
+
+            if (fitness[tempPar1] < fitness[tempPar2])
                 index2 = tempPar1;
             else
                 index2 = tempPar2;
@@ -148,20 +181,58 @@ namespace OK_Project
         */
         private Tuple<int, int> parentSelect2()
         {
-            int index1, index2;
-            index1 = 0;
-            index2 = 0;
+            int index1 = 0;
+            var availableIndexes = new LinkedList<int>();
 
-            // similar way to the function above
-            for (int i = 1; i < fitness.Length; i++)
-                if (fitness[index1] > fitness[i])
-                    index1 = i;
-
-            for (int i = 1; i < fitness.Length; i++)
-                if ((fitness[index2] > fitness[i]) && (index1 != i))
-                    index2 = i;
+            // fill availableIndexes with content
+            for (int i = 0; i < solutions.GetLength(0); i++)
+            {
+                availableIndexes.AddLast(i);
+            }
             
+            // find first index
+            for (int i = 0; i < availableIndexes.Count; i++)
+            {
+                int newIndex = availableIndexes.ElementAt(i);
+                if(fitness[newIndex] < fitness[index1])
+                {
+                    index1 = newIndex;
+                }
+            }
+
+            availableIndexes.Remove(index1);
+
+            int index2 = availableIndexes.ElementAt(0);
+
+            // find second index
+            for (int i = 0; i < availableIndexes.Count; i++)
+            {
+                int newIndex = availableIndexes.ElementAt(i);
+                if (fitness[newIndex] < fitness[index2])
+                {
+                    index2 = newIndex;
+                }
+            }
+
             return new Tuple<int, int> (index1, index2);
+        }
+
+
+        /**
+         * Function picking two random parents (when each chromosome has equal fitness)
+         * to prevent picking the same chromosomes and entering a loop
+         */
+        private Tuple<int, int> parentSelect3()
+        {
+            int index1 = rand.Next(fitness.Length);
+            int index2 = rand.Next(fitness.Length);
+
+            // ensure they are not equal
+            while(index1 == index2)
+            {
+                index2 = rand.Next(fitness.Length);
+            }
+            return new Tuple<int, int>(index1, index2);
         }
 
         /**
@@ -191,8 +262,10 @@ namespace OK_Project
          */
         private int offspring(int[] result)
         {
+            var worstIndexes = new LinkedList<int>();
             int maxFittness = fitness[0];
-            int leastFittestIndex = 0;
+
+            worstIndexes.AddLast(0);
 
             // Find worst chromosome's index
             for (int i = 1; i < fitness.Length; ++i)
@@ -200,10 +273,17 @@ namespace OK_Project
                 if (fitness[i] > maxFittness)
                 {
                     maxFittness = fitness[i];
-                    leastFittestIndex = i;
+                    worstIndexes = new LinkedList<int>();
+                    worstIndexes.AddLast(i);
+                }
+                else if (fitness[i] == maxFittness)
+                {
+                    worstIndexes.AddLast(i);
                 }
             }
-            
+
+            int leastFittestIndex = worstIndexes.ElementAt(rand.Next(worstIndexes.Count));
+
             // Substitute worst chromosome with the new child
             for (int i = 0; i < solutions.GetLength(1); i++)
             {
@@ -217,7 +297,7 @@ namespace OK_Project
          * Function which causes mutation of item at [mutationIndex].
          * Replaces colors of adjacent colors if able.
          */
-        private void mutation1(int mutationIndex)
+        private void mutation(int mutationIndex)
         {
             LinkedList<int> adjacentColors = new LinkedList<int>(); // empty array of all adjacent colors
             LinkedList<int> allColors = new LinkedList<int>(); // empty array of all colors
@@ -254,36 +334,14 @@ namespace OK_Project
                      */
                     if (validColors.Count > 0)
                     {
-                        solutions[mutationIndex, i] = validColors.First();
+                        int newColour = rand.Next(validColors.Count);
+                        solutions[mutationIndex, i] = validColors.ElementAt(newColour);
                     }
                 }
             }
 
         }
 
-        private void mutation2(int mutationIndex)
-        {
-            LinkedList<int> adjacentColors = new LinkedList<int>(); // empty array of all adjacent colors
-            LinkedList<int> allColors = new LinkedList<int>(); // empty array of all colors
-
-            for (int i = 0; i < maxColor; i++) // fill allColors with maximum number of colors
-                allColors.AddLast(i);
-
-            for (int i = 0; i < graph.V; i++)
-            {
-                adjacentColors.Clear();
-                foreach (int item in graph.adj[i]) // fill adjacentColors
-                    adjacentColors.AddLast(solutions[mutationIndex, item]);
-
-                if (adjacentColors.Contains(solutions[mutationIndex, i]))
-                {
-                    // mutate
-                    int newColor = rand.Next(allColors.Count);
-                    solutions[mutationIndex, i] = newColor;
-                }
-            }
-
-        }
 
         public void letsGoGenetic(int amountChromosomes, int maxGenerations)
         {
@@ -313,8 +371,10 @@ namespace OK_Project
                 Tuple<int, int> selection;
                 if (fitness.Max() > 5)
                     selection = parentSelect1();
-                else
+                else if (fitness.Max() != fitness.Min())
                     selection = parentSelect2();
+                else
+                    selection = parentSelect3();
 
                 Console.WriteLine("Parents : " + selection.Item1 + " and " + selection.Item2);
 
@@ -327,7 +387,7 @@ namespace OK_Project
 
                 // void mutation1(int mutationIndex);
                 // void mutation2(int mutationIndex);
-                mutation1(index);
+                mutation(index);
 
                 fitnessScore(index);
                 Console.Write("Min fitness == " + fitness.Min());
@@ -348,7 +408,7 @@ namespace OK_Project
                         thereIsPerfect = true;
                     }
 
-                    if(i < (0.03 * graph.V))
+                    if(i < (0.05 * graph.V))
                     {
                         points++;
                     }
@@ -356,6 +416,20 @@ namespace OK_Project
 
                 if ((points >= 0.5 * amountChromosomes) && thereIsPerfect)
                 {
+                    Console.WriteLine(" ========================================== ");
+                    for (int i = 0; i < amountChromosomes; i++)
+                    {
+                        Console.Write("Rozwiązanie[" + i + "] : ");
+                        for (int j = 0; j < graph.V; j++)
+                        {
+                            Console.Write(solutions[i, j] + " ");
+                        }
+
+                        Console.Write(", Fitness: " + fitness[i]);
+                        Console.WriteLine();
+                    }
+                    Console.WriteLine(" ========================================== ");
+
                     maxColor -= (int)Math.Ceiling(0.05 * maxColor);  // so that it will always be reduced by at least 1 if maxColor is positive
                     Console.WriteLine("NOWY KOLOR TUTUTUTUTUTUTUT: " + maxColor.ToString());
                     saveResult();
@@ -368,7 +442,22 @@ namespace OK_Project
             int minIndex = -1;
             int colors;
 
+            for (int i = 0; i < amountChromosomes; i++)
+                fitnessScore(i);
             // Wypisanie rozwiązań
+
+            for (int i = 0; i < amountChromosomes; i++)
+            {
+                Console.Write("Rozwiązanie[" + i + "] : ");
+                for (int j = 0; j < graph.V; j++)
+                {
+                    Console.Write(solutions[i, j] + " ");
+                }
+                Console.WriteLine();
+            }
+
+            Console.WriteLine(" ========================================== ");
+
             for (int i = 0; i < result.Count; i++)
             {
                 colors = -1;
@@ -380,14 +469,15 @@ namespace OK_Project
                     colors = result.ElementAt(i)[j];
                     Console.Write(result.ElementAt(i)[j] + " ");
                 }
-                Console.WriteLine("Fitness: " + fitness[i]);
-                Console.WriteLine();
                 
                 if (colors < minColors || (colors == minColors && fitness[i] < fitness[minIndex]))
                 {
                     minColors = colors;
                     minIndex = i;
                 }
+
+                Console.Write(" Fitness: " + validateResult(result.ElementAt(i)));
+                Console.WriteLine();
             }
 
             Console.WriteLine("Best is equal to " + (minColors + 1) + " colors, on index " + minIndex);
