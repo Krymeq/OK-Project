@@ -13,6 +13,7 @@ namespace OK_Project
 
         public int[] fitness;
         public int[,] solutions;
+        public LinkedList<int[]> result;
         public int maxColor;                  // variable containing maximum color which is the current target to reach
         /**
          * Function which generates population of n (given parameter) chromosomes
@@ -47,6 +48,44 @@ namespace OK_Project
                     Console.Write(solutions[i,j] + ", ");
                 }
                 Console.WriteLine();
+            }
+        }
+
+        /**
+         * Function which replaces colors out of given range with
+         * random colors within range and updates fitness score.
+         */
+        private void cutColors()
+        {
+            for (int i = 0; i < solutions.GetLength(0); i++)
+            {
+                for (int j = 0; j < solutions.GetLength(1); j++)
+                {
+                    if(solutions[i,j] > maxColor)
+                    {
+                        solutions[i, j] = rand.Next(maxColor);
+                    }
+                }
+                fitnessScore(i);
+            }
+        }
+
+        private void saveResult()
+        {
+            result = new LinkedList<int[]>();
+            for (int i = 0; i < solutions.GetLength(0); i++)
+            {
+                if (fitness[i] == 0)
+                {
+                    int[] arr = new int[solutions.GetLength(1)];
+                    
+                    for(int j = 0; j < solutions.GetLength(1); j++)
+                    {
+                        arr[j] = solutions[i, j];
+                    }
+
+                    result.AddLast(arr);
+                }
             }
         }
 
@@ -216,7 +255,6 @@ namespace OK_Project
                     if (validColors.Count > 0)
                     {
                         solutions[mutationIndex, i] = validColors.First();
-               
                     }
                 }
             }
@@ -265,7 +303,7 @@ namespace OK_Project
             for (int i = 0; i < amountChromosomes; i++)
                 fitnessScore(i);
            
-            while ((generation != maxGenerations) && (fitness.Max() != 0))
+            while (generation < maxGenerations)
             {
                 generation++;
                 Console.WriteLine("Generation " + generation);
@@ -295,6 +333,34 @@ namespace OK_Project
                 Console.Write("Min fitness == " + fitness.Min());
                 Console.Write(". Max fitness == " + fitness.Max());
                 Console.WriteLine(". New child on index " + index + "!!!!");
+
+                // if more than a half of solutions has fitness below 3% of vertices and there is at least one 
+                // perfect one, then try to achieve a solution with lesser colours.
+                // Also, save current array of solutions as it most likely will be lost during the cut.
+
+                bool thereIsPerfect = false;
+                int points = 0;
+
+                foreach (int i in fitness)
+                {
+                    if(i == 0)
+                    {
+                        thereIsPerfect = true;
+                    }
+
+                    if(i < (0.03 * graph.V))
+                    {
+                        points++;
+                    }
+                }
+
+                if ((points >= 0.5 * amountChromosomes) && thereIsPerfect)
+                {
+                    maxColor -= (int)Math.Ceiling(0.05 * maxColor);  // so that it will always be reduced by at least 1 if maxColor is positive
+                    Console.WriteLine("NOWY KOLOR TUTUTUTUTUTUTUT: " + maxColor.ToString());
+                    saveResult();
+                    cutColors();
+                }
             }
             Console.WriteLine("Solution found in " + generation + ". generation!");
             
@@ -302,21 +368,22 @@ namespace OK_Project
             int minIndex = -1;
             int colors;
 
-            for (int i = 0; i < solutions.GetLength(0); i++)
+            // Wypisanie rozwiązań
+            for (int i = 0; i < result.Count; i++)
             {
                 colors = -1;
-                if (fitness[i] != -2137)
-                {
-                    Console.Write("Rozwiązanie[" + i + "] : ");
-                    for (int j = 0; j < solutions.GetLength(1); j++)
-                    {
-                        if (solutions[i,j] > colors)
-                            colors = solutions[i, j];
-                        Console.Write(solutions[i, j] + " ");
-                    }
-                    Console.WriteLine();
+                
+                Console.Write("Rozwiązanie[" + i + "] : ");
+                for (int j = 0; j < result.ElementAt(i).Length; j++)
+                { 
+                    if (result.ElementAt(i)[j] > colors)
+                    colors = result.ElementAt(i)[j];
+                    Console.Write(result.ElementAt(i)[j] + " ");
                 }
-                if (colors < minColors)
+                Console.WriteLine("Fitness: " + fitness[i]);
+                Console.WriteLine();
+                
+                if (colors < minColors || (colors == minColors && fitness[i] < fitness[minIndex]))
                 {
                     minColors = colors;
                     minIndex = i;
@@ -324,8 +391,6 @@ namespace OK_Project
             }
 
             Console.WriteLine("Best is equal to " + (minColors + 1) + " colors, on index " + minIndex);
-            
         }
     }
-
 }
