@@ -35,9 +35,34 @@ namespace OK_Project
             while ((line = file.ReadLine()) != null)
             {
                 string[] val = line.Split(' ');
-                addEdge(int.Parse(val[0]) - 1, int.Parse(val[1]) - 1);
+                int offset = 0;
+
+                // so that we ignore first word in the line when it is not a number
+                if (!Char.IsDigit(val[0][0])) offset++;
+
+                addEdge(int.Parse(val[0 + offset]) - 1, int.Parse(val[1 + offset]) - 1);
             }
         }
+
+        
+        public void saveToFile(string filename)
+        {
+            var file = new System.IO.StreamWriter(filename);
+            file.WriteLine(V);
+            for(int i = 0; i < V; i++)
+            {
+                for(int j = 0; j < adj[i].Count; j++)
+                {
+                    Console.WriteLine(String.Format("{0}, {1}", i, j));
+                    if(i < adj[i].ElementAt(j))
+                    {
+                        file.WriteLine(String.Format("{0} {1}", i + 1, adj[i].ElementAt(j) + 1));
+                    }
+                }
+            }
+            file.Close();
+        }
+
 
         // Generate graph with given amount of nodes and saturation (in %)
         public void generate(int nodes, int saturation)

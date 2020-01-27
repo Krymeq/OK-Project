@@ -60,13 +60,13 @@ namespace OK_Project
 
             for (int i = 0; i < amount; i++)
             {
-                Console.Write("Rozwiązanie " + i + ": ");
+                //Console.Write("Rozwiązanie " + i + ": ");
                 for (int j = 0; j < nodes; j++)
                 {
                     solutions[i, j] = rand.Next(colours);
-                    Console.Write(solutions[i,j] + ", ");
+                    //Console.Write(solutions[i,j] + ", ");
                 }
-                Console.WriteLine();
+                //Console.WriteLine();
             }
         }
 
@@ -346,8 +346,11 @@ namespace OK_Project
         public void letsGoGenetic(int amountChromosomes, int maxGenerations)
         {
             int generation = 0;
+            int deadEndGenerations = 0;
 
             maxColor = graph.greedy();
+            result = new LinkedList<int[]>();
+            result.AddLast(graph.result);
 
             Console.WriteLine();
             Console.WriteLine("Max color: " + maxColor.ToString());
@@ -360,11 +363,51 @@ namespace OK_Project
             // void fitnessScore(int index);
             for (int i = 0; i < amountChromosomes; i++)
                 fitnessScore(i);
-           
+
+            //Console.WriteLine("At the beginning");
+            //for (int i = 0; i < graph.V; i++)
+            //{
+            //    Console.Write(solutions[0, i] + ", ");
+            //}
+            //Console.WriteLine("\n");
+
             while (generation < maxGenerations)
             {
+                // code somehow enters a "dead end", so after x generations 
+                // during which fitness does not change, just replace it with new population
+                if(fitness.Min() == fitness.Max())
+                {
+                    deadEndGenerations++;
+                }
+                else
+                {
+                    deadEndGenerations = 0;
+                }
+
+                if(deadEndGenerations > 100)
+                {
+                    deadEndGenerations = 0;
+                    generatePopulation(amountChromosomes);
+
+                    for(int i = 0; i < amountChromosomes; i++)
+                    {
+                        fitnessScore(i);
+                    }
+                }
+
+                if(generation % 200 == 0)
+                {
+                    Console.WriteLine("generation " + generation);
+                    //for (int i = 0; i < graph.V; i++)
+                    //{
+                    //    Console.Write(solutions[0, i] + ", ");
+                    //}
+                    Console.WriteLine();
+                }
+                
+
                 generation++;
-                Console.WriteLine("Generation " + generation);
+                //Console.WriteLine("Generation " + generation);
 
                 // Tuple<int, int> parentSelect1();
                 // Tuple<int, int> parentSelect2();
@@ -376,7 +419,7 @@ namespace OK_Project
                 else
                     selection = parentSelect3();
 
-                Console.WriteLine("Parents : " + selection.Item1 + " and " + selection.Item2);
+                //Console.WriteLine("Parents : " + selection.Item1 + " and " + selection.Item2);
 
                 // int[] crossover(int index1, int index2);
                 int[] child = crossover(selection.Item1, selection.Item2);
@@ -390,9 +433,9 @@ namespace OK_Project
                 mutation(index);
 
                 fitnessScore(index);
-                Console.Write("Min fitness == " + fitness.Min());
-                Console.Write(". Max fitness == " + fitness.Max());
-                Console.WriteLine(". New child on index " + index + "!!!!");
+                //Console.Write("Min fitness == " + fitness.Min());
+                //Console.Write(". Max fitness == " + fitness.Max());
+                //Console.WriteLine(". New child on index " + index + "!!!!");
 
                 // if more than a half of solutions has fitness below 3% of vertices and there is at least one 
                 // perfect one, then try to achieve a solution with lesser colours.
@@ -416,45 +459,54 @@ namespace OK_Project
 
                 if ((points >= 0.5 * amountChromosomes) && thereIsPerfect)
                 {
-                    Console.WriteLine(" ========================================== ");
-                    for (int i = 0; i < amountChromosomes; i++)
-                    {
-                        Console.Write("Rozwiązanie[" + i + "] : ");
-                        for (int j = 0; j < graph.V; j++)
-                        {
-                            Console.Write(solutions[i, j] + " ");
-                        }
+                    //Console.WriteLine(" ========================================== ");
+                    //for (int i = 0; i < amountChromosomes; i++)
+                    //{
+                    //    Console.Write("Rozwiązanie[" + i + "] : ");
+                    //    for (int j = 0; j < graph.V; j++)
+                    //    {
+                    //        Console.Write(solutions[i, j] + " ");
+                    //    }
 
-                        Console.Write(", Fitness: " + fitness[i]);
-                        Console.WriteLine();
-                    }
-                    Console.WriteLine(" ========================================== ");
+                    //    Console.Write(", Fitness: " + fitness[i]);
+                    //    Console.WriteLine();
+                    //}
+                    //Console.WriteLine(" ========================================== ");
 
                     maxColor -= (int)Math.Ceiling(0.05 * maxColor);  // so that it will always be reduced by at least 1 if maxColor is positive
-                    Console.WriteLine("NOWY KOLOR TUTUTUTUTUTUTUT: " + maxColor.ToString());
+                    //Console.WriteLine("NOWY KOLOR TUTUTUTUTUTUTUT: " + maxColor.ToString());
                     saveResult();
                     cutColors();
                 }
             }
-            Console.WriteLine("Solution found in " + generation + ". generation!");
+            //Console.WriteLine("Solution found in " + generation + ". generation!");
             
             int minColors = graph.V;
             int minIndex = -1;
             int colors;
-
-            for (int i = 0; i < amountChromosomes; i++)
-                fitnessScore(i);
-            // Wypisanie rozwiązań
+            bool perf = false;
 
             for (int i = 0; i < amountChromosomes; i++)
             {
-                Console.Write("Rozwiązanie[" + i + "] : ");
-                for (int j = 0; j < graph.V; j++)
-                {
-                    Console.Write(solutions[i, j] + " ");
-                }
-                Console.WriteLine();
+                fitnessScore(i);
+                if (fitness[i] == 0)
+                    perf = true;
             }
+
+            if (perf) saveResult();
+                    
+            
+            
+            //// Wypisanie rozwiązań
+            //for (int i = 0; i < amountChromosomes; i++)
+            //{
+            //    Console.Write("Rozwiązanie[" + i + "] : ");
+            //    for (int j = 0; j < graph.V; j++)
+            //    {
+            //        Console.Write(solutions[i, j] + " ");
+            //    }
+            //    Console.WriteLine();
+            //}
 
             Console.WriteLine(" ========================================== ");
 
